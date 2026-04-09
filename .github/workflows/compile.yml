@@ -1,7 +1,5 @@
 name: Compile MQL5
-
 on: [push]
-
 jobs:
   compile:
     runs-on: windows-latest
@@ -13,26 +11,41 @@ jobs:
 
       - name: Install MT5
         shell: powershell
-        run: Start-Process mt5setup.exe -ArgumentList '/auto' -Wait
+        run: |
+          Start-Process mt5setup.exe -ArgumentList '/auto' -Wait
+          Start-Sleep -Seconds 10
 
-      - name: Compile
+      - name: Copy MQ5 to MT5 folder
+        shell: powershell
+        run: |
+          $dir = "C:\Program Files\MetaTrader 5\MQL5\Indicators"
+          New-Item -ItemType Directory -Force -Path $dir
+          Copy-Item "$env:GITHUB_WORKSPACE\RSI_BuySell_Levels.mq5" "$dir\"
+
+      - name: Run MT5 to initialize
+        shell: powershell
+        run: |
+          Start-Process "C:\Program Files\MetaTrader 5\terminal64.exe" -ArgumentList '/portable'
+          Start-Sleep -Seconds 20
+          Stop-Process -Name "terminal64" -ErrorAction SilentlyContinue
+          Start-Sleep -Seconds 5
+
+      - name: Compile with MetaEditor
         shell: powershell
         run: |
           $me = "C:\Program Files\MetaTrader 5\metaeditor64.exe"
           $dir = "C:\Program Files\MetaTrader 5\MQL5\Indicators"
-          $inc = "C:\Program Files\MetaTrader 5\MQL5"
           $dst = "$dir\RSI_BuySell_Levels.mq5"
-          New-Item -ItemType Directory -Force -Path $dir
-          Copy-Item "$env:GITHUB_WORKSPACE\RSI_BuySell_Levels.mq5" $dst
-          & $me /compile:"$dst" /include:"$inc" /log:"$env:GITHUB_WORKSPACE\compile.log"
-          Start-Sleep -Seconds 15
+          & $me /compile:"$dst" /include:"C:\Program Files\MetaTrader 5\MQL5" /log:"$env:GITHUB_WORKSPACE\compile.log"
+          Start-Sleep -Seconds 20
           Get-Content "$env:GITHUB_WORKSPACE\compile.log" -ErrorAction SilentlyContinue
           Get-ChildItem "$dir"
+          Copy-Item "$dir\RSI_BuySell_Levels.ex5" "$env:GITHUB_WORKSPACE\" -ErrorAction SilentlyContinue
 
-      - name: Upload artifacts
+      - name: Upload
         uses: actions/upload-artifact@v4
         with:
           name: indicator
           path: |
-            C:\Program Files\MetaTrader 5\MQL5\Indicators\RSI_BuySell_Levels.ex5
+            RSI_BuySell_Levels.ex5
             compile.log
