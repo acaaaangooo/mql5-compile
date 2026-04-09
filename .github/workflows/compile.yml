@@ -1,4 +1,21 @@
-- name: Compile
+name: Compile MQL5
+
+on: [push]
+
+jobs:
+  compile:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download MT5
+        run: curl -L -o mt5setup.exe https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe
+
+      - name: Install MT5
+        shell: powershell
+        run: Start-Process mt5setup.exe -ArgumentList '/auto' -Wait
+
+      - name: Compile
         shell: powershell
         run: |
           $me = "C:\Program Files\MetaTrader 5\metaeditor64.exe"
