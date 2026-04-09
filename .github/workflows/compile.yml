@@ -19,15 +19,14 @@ jobs:
         shell: powershell
         run: |
           $me = "C:\Program Files\MetaTrader 5\metaeditor64.exe"
-          $src = "$env:GITHUB_WORKSPACE\RSI_BuySell_Levels.mq5"
           $dir = "C:\Program Files\MetaTrader 5\MQL5\Indicators"
           $dst = "$dir\RSI_BuySell_Levels.mq5"
           New-Item -ItemType Directory -Force -Path $dir
-          Copy-Item $src $dst
-          Start-Process $me -ArgumentList "/compile:$dst /log" -Wait -PassThru
-          Start-Sleep -Seconds 10
-          Get-ChildItem "C:\Program Files\MetaTrader 5\MQL5\" -Recurse -Filter "*.ex5"
-          Get-ChildItem "$env:GITHUB_WORKSPACE" -Recurse -Filter "*.ex5"
+          Copy-Item "$env:GITHUB_WORKSPACE\RSI_BuySell_Levels.mq5" $dst
+          $p = Start-Process $me -ArgumentList "/compile:$dst /log" -Wait -PassThru
+          Start-Sleep -Seconds 30
+          Get-ChildItem "$dir" -Recurse
+          Copy-Item "$dir\RSI_BuySell_Levels.ex5" "$env:GITHUB_WORKSPACE\" -ErrorAction SilentlyContinue
           
       - name: Upload ex5
         uses: actions/upload-artifact@v4
