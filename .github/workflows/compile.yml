@@ -7,11 +7,11 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download and Install MT5
-        shell: powershell
+        shell: cmd
         run: |
           curl -L -o mt5setup.exe https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe
-          Start-Process mt5setup.exe -ArgumentList '/auto' -Wait
-          Start-Sleep -Seconds 5
+          start /wait mt5setup.exe /auto
+          timeout /t 10
 
       - name: Initialize MT5
         shell: powershell
