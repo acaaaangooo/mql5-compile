@@ -6,7 +6,7 @@ jobs:
   compile:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/upload-artifact@v4
 
       - name: Download MT5
         run: curl -L -o mt5setup.exe https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe
