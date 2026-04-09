@@ -6,39 +6,44 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download and Install MT5
+      - name: Install MT5
         shell: powershell
         run: |
           Invoke-WebRequest -Uri "https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe" -OutFile "mt5setup.exe"
           Start-Process mt5setup.exe -ArgumentList '/auto' -Wait
           Start-Sleep -Seconds 10
 
-      - name: Initialize MT5
+      - name: Setup files
         shell: powershell
         run: |
-          Start-Process "C:\Program Files\MetaTrader 5\terminal64.exe" -ArgumentList '/portable'
-          Start-Sleep -Seconds 25
-          Stop-Process -Name "terminal64" -ErrorAction SilentlyContinue
-          Start-Sleep -Seconds 5
+          $mt5 = "C:\Program Files\MetaTrader 5"
+          New-Item -ItemType Directory -Force "$mt5\MQL5\Indicators"
+          Copy-Item "$env:GITHUB_WORKSPACE\RSI_BuySell_Levels.mq5" "$mt5\MQL5\Indicators\"
 
-      - name: Compile
+      - name: Compile via MT5 terminal
         shell: powershell
         run: |
-          $mt5dir = "C:\Program Files\MetaTrader 5"
-          $inddir = "$mt5dir\MQL5\Indicators"
-          $dst = "$inddir\RSI_BuySell_Levels.mq5"
-          $log = "$mt5dir\MQL5\Indicators\RSI_BuySell_Levels.log"
-          Copy-Item "$env:GITHUB_WORKSPACE\RSI_BuySell_Levels.mq5" $dst -Force
-          $p = Start-Process "$mt5dir\metaeditor64.exe" `
-            -ArgumentList "/portable /compile:$dst /include:$mt5dir\MQL5 /log:$log" `
-            -WorkingDirectory $mt5dir `
-            -Wait -PassThru
-          Start-Sleep -Seconds 20
-          Write-Host "Exit code: $($p.ExitCode)"
-          Get-Content $log -ErrorAction SilentlyContinue
-          Get-ChildItem $inddir
-          Copy-Item "$inddir\RSI_BuySell_Levels.ex5" "$env:GITHUB_WORKSPACE\" -ErrorAction SilentlyContinue
-          Copy-Item $log "$env:GITHUB_WORKSPACE\compile.log" -ErrorAction SilentlyContinue
+          $mt5 = "C:\Program Files\MetaTrader 5"
+          # Run terminal to init data folder
+          $t = Start-Process "$mt5\terminal64.exe" -PassThru
+          Start-Sleep -Seconds 30
+          $t | Stop-Process -Force
+          Start-Sleep -Seconds 5
+          # Now compile
+          $me = "$mt5\metaeditor64.exe"
+          $src = "$mt5\MQL5\Indicators\RSI_BuySell_Levels.mq5"
+          $log = "$mt5\MQL5\Indicators\RSI_BuySell_Levels.log"
+          Start-Process $me -ArgumentList "/compile:`"$src`" /inc:`"$mt5\MQL5`" /log:`"$log`"" -Wait
+          Start-Sleep -Seconds 15
+          if (Test-Path $log) { Get-Content $log }
+          Get-ChildItem "$mt5\MQL5\Indicators"
+          if (Test-Path "$mt5\MQL5\Indicators\RSI_BuySell_Levels.ex5") {
+            Copy-Item "$mt5\MQL5\Indicators\RSI_BuySell_Levels.ex5" "$env:GITHUB_WORKSPACE\"
+            Copy-Item $log "$env:GITHUB_WORKSPACE\compile.log" -ErrorAction SilentlyContinue
+            Write-Host "SUCCESS! ex5 file found!"
+          } else {
+            Write-Host "FAILED - no ex5 generated"
+          }
 
       - name: Upload
         uses: actions/upload-artifact@v4
