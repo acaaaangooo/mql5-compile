@@ -23,13 +23,13 @@ jobs:
           $dst = "$dir\RSI_BuySell_Levels.mq5"
           New-Item -ItemType Directory -Force -Path $dir
           Copy-Item "$env:GITHUB_WORKSPACE\RSI_BuySell_Levels.mq5" $dst
-          $p = Start-Process $me -ArgumentList "/compile:$dst /log" -Wait -PassThru
+          Start-Process $me -ArgumentList "/compile:$dst /log:$env:GITHUB_WORKSPACE\compile.log" -Wait
           Start-Sleep -Seconds 30
+          Get-Content "$env:GITHUB_WORKSPACE\compile.log" -ErrorAction SilentlyContinue
           Get-ChildItem "$dir" -Recurse
-          Copy-Item "$dir\RSI_BuySell_Levels.ex5" "$env:GITHUB_WORKSPACE\" -ErrorAction SilentlyContinue
-          
-      - name: Upload ex5
+
+      - name: Upload log
         uses: actions/upload-artifact@v4
         with:
-          name: indicator
-          path: RSI_BuySell_Levels.ex5
+          name: compile-log
+          path: compile.log
