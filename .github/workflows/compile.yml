@@ -20,16 +20,19 @@ jobs:
         run: |
           $me = "C:\Program Files\MetaTrader 5\metaeditor64.exe"
           $dir = "C:\Program Files\MetaTrader 5\MQL5\Indicators"
+          $inc = "C:\Program Files\MetaTrader 5\MQL5"
           $dst = "$dir\RSI_BuySell_Levels.mq5"
           New-Item -ItemType Directory -Force -Path $dir
           Copy-Item "$env:GITHUB_WORKSPACE\RSI_BuySell_Levels.mq5" $dst
-          Start-Process $me -ArgumentList "/compile:$dst /log:$env:GITHUB_WORKSPACE\compile.log" -Wait
-          Start-Sleep -Seconds 30
+          & $me /compile:"$dst" /include:"$inc" /log:"$env:GITHUB_WORKSPACE\compile.log"
+          Start-Sleep -Seconds 15
           Get-Content "$env:GITHUB_WORKSPACE\compile.log" -ErrorAction SilentlyContinue
-          Get-ChildItem "$dir" -Recurse
+          Get-ChildItem "$dir"
 
-      - name: Upload log
+      - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: compile-log
-          path: compile.log
+          name: indicator
+          path: |
+            C:\Program Files\MetaTrader 5\MQL5\Indicators\RSI_BuySell_Levels.ex5
+            compile.log
