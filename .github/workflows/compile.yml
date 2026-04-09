@@ -6,41 +6,39 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Download MT5
-        run: curl -L -o mt5setup.exe https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe
-
-      - name: Install MT5
+      - name: Download and Install MT5
         shell: powershell
         run: |
+          curl -L -o mt5setup.exe https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe
           Start-Process mt5setup.exe -ArgumentList '/auto' -Wait
-          Start-Sleep -Seconds 10
+          Start-Sleep -Seconds 5
 
-      - name: Copy MQ5 to MT5 folder
-        shell: powershell
-        run: |
-          $dir = "C:\Program Files\MetaTrader 5\MQL5\Indicators"
-          New-Item -ItemType Directory -Force -Path $dir
-          Copy-Item "$env:GITHUB_WORKSPACE\RSI_BuySell_Levels.mq5" "$dir\"
-
-      - name: Run MT5 to initialize
+      - name: Initialize MT5
         shell: powershell
         run: |
           Start-Process "C:\Program Files\MetaTrader 5\terminal64.exe" -ArgumentList '/portable'
-          Start-Sleep -Seconds 20
+          Start-Sleep -Seconds 25
           Stop-Process -Name "terminal64" -ErrorAction SilentlyContinue
           Start-Sleep -Seconds 5
 
-      - name: Compile with MetaEditor
+      - name: Compile
         shell: powershell
         run: |
-          $me = "C:\Program Files\MetaTrader 5\metaeditor64.exe"
-          $dir = "C:\Program Files\MetaTrader 5\MQL5\Indicators"
-          $dst = "$dir\RSI_BuySell_Levels.mq5"
-          & $me /compile:"$dst" /include:"C:\Program Files\MetaTrader 5\MQL5" /log:"$env:GITHUB_WORKSPACE\compile.log"
+          $mt5dir = "C:\Program Files\MetaTrader 5"
+          $inddir = "$mt5dir\MQL5\Indicators"
+          $dst = "$inddir\RSI_BuySell_Levels.mq5"
+          $log = "$mt5dir\MQL5\Indicators\RSI_BuySell_Levels.log"
+          Copy-Item "$env:GITHUB_WORKSPACE\RSI_BuySell_Levels.mq5" $dst -Force
+          $p = Start-Process "$mt5dir\metaeditor64.exe" `
+            -ArgumentList "/portable /compile:$dst /include:$mt5dir\MQL5 /log:$log" `
+            -WorkingDirectory $mt5dir `
+            -Wait -PassThru
           Start-Sleep -Seconds 20
-          Get-Content "$env:GITHUB_WORKSPACE\compile.log" -ErrorAction SilentlyContinue
-          Get-ChildItem "$dir"
-          Copy-Item "$dir\RSI_BuySell_Levels.ex5" "$env:GITHUB_WORKSPACE\" -ErrorAction SilentlyContinue
+          Write-Host "Exit code: $($p.ExitCode)"
+          Get-Content $log -ErrorAction SilentlyContinue
+          Get-ChildItem $inddir
+          Copy-Item "$inddir\RSI_BuySell_Levels.ex5" "$env:GITHUB_WORKSPACE\" -ErrorAction SilentlyContinue
+          Copy-Item $log "$env:GITHUB_WORKSPACE\compile.log" -ErrorAction SilentlyContinue
 
       - name: Upload
         uses: actions/upload-artifact@v4
