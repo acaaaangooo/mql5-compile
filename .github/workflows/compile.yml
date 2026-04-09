@@ -1,29 +1,15 @@
-name: Compile MQL5
-
-on: [push]
-
-jobs:
-  compile:
-    runs-on: windows-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Download MT5
-        run: curl -L -o mt5setup.exe https://download.mql5.com/cdn/web/metaquotes.software.corp/mt5/mt5setup.exe
-
-      - name: Install MT5
-        shell: powershell
-        run: Start-Process mt5setup.exe -ArgumentList '/auto' -Wait
-
-      - name: Compile
+- name: Compile
         shell: powershell
         run: |
           $me = "C:\Program Files\MetaTrader 5\metaeditor64.exe"
-          $file = "$env:GITHUB_WORKSPACE\RSI_BuySell_Levels.mq5"
-          Start-Process $me -ArgumentList "/compile:$file /log" -Wait
+          $src = "$env:GITHUB_WORKSPACE\RSI_BuySell_Levels.mq5"
+          $dst = "C:\Program Files\MetaTrader 5\MQL5\Indicators\RSI_BuySell_Levels.mq5"
+          Copy-Item $src $dst
+          Start-Process $me -ArgumentList "/compile:$dst /log" -Wait
+          Copy-Item "C:\Program Files\MetaTrader 5\MQL5\Indicators\RSI_BuySell_Levels.ex5" "$env:GITHUB_WORKSPACE\"
 
       - name: Upload ex5
         uses: actions/upload-artifact@v4
         with:
           name: indicator
-          path: "*.ex5"
+          path: RSI_BuySell_Levels.ex5
